@@ -1,0 +1,32 @@
+{% extends "users/basic.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="card mx-auto shadow-sm" style="max-width: 600px; padding: 40px;">
+        <div class="card-body">
+            {% if payment_id %}
+            <i class="fas fa-check-circle text-success" style="font-size: 80px; margin-bottom: 20px;"></i>
+            <h2 class="card-title text-success mb-3">Booking Confirmed!</h2>
+            <p class="text-muted mb-4">Your payment was securely processed. You will receive an email confirmation
+                containing your ticket details.</p>
+
+            <div class="text-start bg-light p-3 rounded mb-4" style="border: 1px dashed #ccc;">
+                <p class="mb-1"><strong>Payment ID:</strong> {{ payment_id }}</p>
+                <p class="mb-0"><strong>Order ID:</strong> {{ order_id }}</p>
+            </div>
+
+            <a href="{% url 'profile' %}" class="btn btn-primary btn-lg px-5 mt-3">View My Tickets</a>
+
+            {% else %}
+
+            <i class="fas fa-times-circle text-danger" style="font-size: 80px; margin-bottom: 20px;"></i>
+            <h2 class="card-title text-danger mb-3">Transaction Failed</h2>
+            <p class="text-muted mb-4">We were unable to securely verify your transaction, or it was cancelled by the
+                user. Any temporary holds on your seat have been released.</p>
+
+            <a href="{% url 'movie_list' %}" class="btn btn-outline-danger btn-lg px-5 mt-3">Browse Movies</a>
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+Hello {{ booking.user_name }},
+
+Thank you for booking with BookMySeat!
+
+Here are your booking details:
+
+Movie: {{ booking.movie_name }}
+Theater: {{ booking.theater_name }}
+Time: {{ booking.time }}
+Seats: {{ booking.seats }}
+Booking ID (Payment Ref): {{ booking.payment_id }}
+
+Enjoy the show!
+
+Best regards,
+BookMySeat Team

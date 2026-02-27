@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | BookMySeat</title>
+    <!-- Modern Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+            height: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            color: #3b82f6;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.9rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        h3.section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard-header text-center">
+        <h1 class="display-5 fw-bold"><i class="fas fa-chart-line me-3"></i>Admin Analytics Dashboard</h1>
+        <p class="lead mb-0">Real-time optimized metrics driven by Redis caching</p>
+        <div class="mt-3">
+            <a href="{% url 'movie_list' %}" class="btn btn-outline-light"><i class="fas fa-home me-2"></i>Back to
+                Home</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Top KPIs -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-wallet stat-icon text-success"></i>
+                    <div class="stat-title">Total Lifetime Revenue</div>
+                    <div class="stat-value">₹{{ stats.total_revenue_number|floatformat:2 }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-ticket-alt stat-icon text-primary"></i>
+                    <div class="stat-title">Total Bookings</div>
+                    <div class="stat-value">{{ stats.total_bookings }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-ban stat-icon text-danger"></i>
+                    <div class="stat-title">Cancellation Rate</div>
+                    <div class="stat-value">{{ stats.cancellation_rate }}%</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <i class="fas fa-bolt stat-icon text-warning"></i>
+                    <div class="stat-title">Cache Status</div>
+                    <div class="stat-value text-success" style="font-size: 1.5rem;"><i
+                            class="fas fa-check-circle me-1"></i>Active</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-6">
+                <!-- Most Popular Movies -->
+                <div class="table-container">
+                    <h3 class="section-title"><i class="fas fa-film me-2"></i>Most Popular Movies</h3>
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Movie</th>
+                                <th class="text-end">Total Bookings</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for movie in stats.popular_movies %}
+                            <tr>
+                                <td><span class="fw-bold">{{ movie.name }}</span></td>
+                                <td class="text-end"><span class="badge bg-primary rounded-pill">{{ movie.booking_count
+                                        }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Busiest Theaters -->
+                <div class="table-container">
+                    <h3 class="section-title"><i class="fas fa-building me-2"></i>Busiest Theaters (Occupancy)</h3>
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Theater</th>
+                                <th class="text-end">Occupancy Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for theater in stats.busiest_theaters %}
+                            <tr>
+                                <td>{{ theater.name }}</td>
+                                <td class="text-end">
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if theater.occupancy > 75 %}bg-success{% elif theater.occupancy > 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                                            role="progressbar" data-width="{{ theater.occupancy }}%"
+                                            aria-valuenow="{{ theater.occupancy }}" aria-valuemin="0"
+                                            aria-valuemax="100">{{ theater.occupancy|floatformat:1 }}%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-lg-6">
+                <!-- Revenue Breakdown -->
+                <div class="table-container">
+                    <h3 class="section-title"><i class="fas fa-calendar-alt me-2"></i>Daily Revenue (Log)</h3>
+                    <div style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for day in stats.daily_revenue %}
+                                <tr>
+                                    <td>{{ day.date }}</td>
+                                    <td class="text-end text-success fw-bold">₹{{ day.total|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">No revenue data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Peak Hours -->
+                <div class="table-container">
+                    <h3 class="section-title"><i class="fas fa-clock me-2"></i>Peak Booking Hours</h3>
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Hour of Day</th>
+                                <th class="text-end">Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hour in stats.peak_hours %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-secondary"><i class="far fa-clock me-1"></i>{{ hour.hour
+                                        }}:00</span>
+                                </td>
+                                <td class="text-end fw-bold">{{ hour.volume }} bookings</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No hourly data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.css"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-width]').forEach(function (element) {
+                element.style.width = element.getAttribute('data-width');
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,26 @@
+# Web frameworks
+Django
+Flask
+Flask-Cors
+gunicorn
+whitenoise
+django-environ
+
+# Database & storage
+psycopg2-binary
+dj-database-url
+cloudinary
+django-cloudinary-storage
+redis
+celery
+
+# Optional Flask MongoDB integration
+Flask-PyMongo
+pymongo
+
+# Payment
+razorpay
+
+# Utilities
+python-dotenv
+pillow
