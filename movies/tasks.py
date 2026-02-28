@@ -21,30 +21,39 @@ def send_booking_confirmation_email(user_email, booking_data):
         context = {'booking': booking_data}
         html_content = render_to_string('emails/booking_confirmation.html', context)
 
-        api_key = getattr(settings, 'RESEND_API_KEY', None)
+        api_key = getattr(settings, 'SENDGRID_API_KEY', None)
         import os
         if not api_key:
-            api_key = os.environ.get('RESEND_API_KEY')
+            api_key = os.environ.get('SENDGRID_API_KEY')
             
         if not api_key:
-            print("EMAIL THREAD ERROR: Missing RESEND_API_KEY environment variable. Cannot send email.")
+            print("EMAIL THREAD ERROR: Missing SENDGRID_API_KEY environment variable. Cannot send email.")
             return False
 
         payload = {
-            "from": "BookMyShow <onboarding@resend.dev>",
-            "to": [user_email],
-            "subject": f"Tickets Confirmed! - {booking_data['movie_name']}",
-            "html": html_content
+            "personalizations": [
+                {
+                    "to": [{"email": user_email}],
+                    "subject": f"Tickets Confirmed! - {booking_data['movie_name']}"
+                }
+            ],
+            "from": {"email": "YOUR_VERIFIED_SENDER_EMAIL@gmail.com", "name": "BookMyShow"},
+            "content": [
+                {
+                    "type": "text/html",
+                    "value": html_content
+                }
+            ]
         }
 
-        req = urllib.request.Request('https://api.resend.com/emails')
+        req = urllib.request.Request('https://api.sendgrid.com/v3/mail/send')
         req.add_header('Authorization', f'Bearer {api_key}')
         req.add_header('Content-Type', 'application/json')
         
         # Send HTTP POST directly (Bypasses Render's SMTP port 587 block)
         response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'))
         
-        print(f"RESEND API SUCCESS: Email sent successfully to {user_email}! Status: {response.status}")
+        print(f"SENDGRID API SUCCESS: Email sent successfully to {user_email}! Status: {response.getcode()}")
         return True
     
     except Exception as exc:
