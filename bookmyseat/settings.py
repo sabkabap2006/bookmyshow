@@ -46,7 +46,7 @@ ssl.create_default_context = ssl._create_unverified_context
 # SECURITY WARNING: don't run with debug turned on in production!
 # Debug is now securely controlled dynamically at the top of the file via the ENVIRONMENT variable
 
-ALLOWED_HOSTS = ['*', 'johnny-pseudozoological-ighly.ngrok-free.dev', 'bookmyshowclone-reyv.onrender.com','bookmyshow-production-38c3.up.railway.app','bookmyshowclone-production-295b.up.railway.app','bookmyshowclone-production-644b.up.railway.app','bookmyshow-production-85c9.up.railway.app']
+ALLOWED_HOSTS = ['*', 'johnny-pseudozoological-ighly.ngrok-free.dev', 'bookmyshow-2l4o.onrender.com']
 
 # Tell Django to trust the X-Forwarded-Proto header from Ngrok and Render
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -64,6 +64,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'https://bookmyshowclone-production-295b.up.railway.app',
     'https://bookmyshow-production-85c9.up.railway.app/'
+    'https://bookmyshow-2l4o.onrender.com'
 ]
 
 # Application definition
@@ -216,7 +217,7 @@ CELERY_BEAT_SCHEDULE = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/1"),
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
     }
 }
 
