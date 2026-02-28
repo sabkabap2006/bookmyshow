@@ -172,15 +172,13 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
-# Media files (User uploads)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-if ENVIRONMENT != 'development':
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.CloudinaryStorage'
-    CLOUDINARY_STORAGE = {
-        'CLOUDINARY_URL': env('CLOUDINARY_URL')
-    }
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'dv9krhdih',
+    'API_KEY': '259618126385999',
+    'API_SECRET': 'NW9wzaXsGfsYpebijwGoJnqXshY',
+}
 
 
 import certifi
