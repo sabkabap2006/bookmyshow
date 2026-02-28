@@ -64,7 +64,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://bookmyshow-production-85c9.up.railway.app/',
     'https://bookmyshow-2l4o.onrender.com',
     'https://bookmyshow-1-ce47.onrender.com',
-    'https://api.razorpay.com'
+    'https://api.razorpay.com',
     'https://bookmyshow-seven-lake.vercel.app/'
 ]
 
