@@ -37,7 +37,7 @@ def send_booking_confirmation_email(user_email, booking_data):
                     "subject": f"Tickets Confirmed! - {booking_data['movie_name']}"
                 }
             ],
-            "from": {"email": "YOUR_VERIFIED_SENDER_EMAIL@gmail.com", "name": "BookMyShow"},
+            "from": {"email": "sayantanpal2006741201@gmail.com", "name": "BookMyShow"},
             "content": [
                 {
                     "type": "text/html",
@@ -50,8 +50,12 @@ def send_booking_confirmation_email(user_email, booking_data):
         req.add_header('Authorization', f'Bearer {api_key}')
         req.add_header('Content-Type', 'application/json')
         
-        # Send HTTP POST directly (Bypasses Render's SMTP port 587 block)
-        response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'))
+        # Bypass SSL Verification (Fix for MacOS/Server bug)
+        import ssl
+        context = ssl._create_unverified_context()
+
+        # Send HTTP POST directly 
+        response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), context=context)
         
         print(f"SENDGRID API SUCCESS: Email sent successfully to {user_email}! Status: {response.getcode()}")
         return True
