@@ -46,7 +46,7 @@ ssl.create_default_context = ssl._create_unverified_context
 # SECURITY WARNING: don't run with debug turned on in production!
 # Debug is now securely controlled dynamically at the top of the file via the ENVIRONMENT variable
 
-ALLOWED_HOSTS = ['*', 'johnny-pseudozoological-ighly.ngrok-free.dev', 'bookmyshow-2l4o.onrender.com']
+ALLOWED_HOSTS = ['*', 'johnny-pseudozoological-ighly.ngrok-free.dev', 'bookmyshow-2l4o.onrender.com', 'bookmyshow-1-ce47.onrender.com']
 
 # Tell Django to trust the X-Forwarded-Proto header from Ngrok and Render
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -65,6 +65,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://bookmyshowclone-production-295b.up.railway.app',
     'https://bookmyshow-production-85c9.up.railway.app/'
     'https://bookmyshow-2l4o.onrender.com'
+    'https://bookmyshow-1-ce47.onrender.com'
 ]
 
 # Application definition
