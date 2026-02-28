@@ -1,8 +1,9 @@
 #!/bin/bash
+set -o errexit
 
 echo "Starting Django application..."
 
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 
-gunicorn bookmyseat.wsgi:application --bind 0.0.0.0:$PORT
+exec gunicorn bookmyseat.wsgi:application --bind 0.0.0.0:$PORT
