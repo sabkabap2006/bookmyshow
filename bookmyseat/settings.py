@@ -46,7 +46,7 @@ ssl.create_default_context = ssl._create_unverified_context
 # SECURITY WARNING: don't run with debug turned on in production!
 # Debug is now securely controlled dynamically at the top of the file via the ENVIRONMENT variable
 
-ALLOWED_HOSTS = ['*', 'johnny-pseudozoological-ighly.ngrok-free.dev', 'bookmyshowclone-reyv.onrender.com','bookmyshowclone-production-295b.up.railway.app','bookmyshowclone-production-644b.up.railway.app','bookmyshow-production-85c9.up.railway.app']
+ALLOWED_HOSTS = ['*', 'johnny-pseudozoological-ighly.ngrok-free.dev', 'bookmyshowclone-reyv.onrender.com','bookmyshow-production-38c3.up.railway.app','bookmyshowclone-production-295b.up.railway.app','bookmyshowclone-production-644b.up.railway.app','bookmyshow-production-85c9.up.railway.app']
 
 # Tell Django to trust the X-Forwarded-Proto header from Ngrok and Render
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -124,10 +124,14 @@ DATABASES = {
     }
 }
 
-# Render PostgreSQL Database Integration via Environment Variable
-database_url = env('DATABASE_URL', default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'))
-DATABASES['default'] = dj_database_url.parse(database_url)
-
+POSTGRES_LOCALLY= False
+if ENVIRONMENT== 'production'or  POSTGRES_LOCALLY == True:
+    DATABASES['default'] = dj_database_url.parse(env('DATABASE_URL'))
+else:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
