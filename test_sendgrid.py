@@ -3,33 +3,48 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bookmyseat.settings')
 django.setup()
 
-from movies.tasks import send_booking_confirmation_email
-
-# Verify API key is loaded
+import urllib.request
+import json
+import ssl
 from django.conf import settings
-print("Checking API Key:")
-key = getattr(settings, 'SENDGRID_API_KEY', None) or os.environ.get('SENDGRID_API_KEY')
-if not key:
-    print("ERROR: SENDGRID_API_KEY is not found in local environment.")
-else:
-    print(f"Found API key starting with: {key[:8]}...")
 
-# Fire the real function directly
-demo_data = {
-    'movie_name': 'Test Movie Authentication',
-    'theater_name': 'Test Theater',
-    'show_date': '2026-03-01',
-    'show_time': '12:00 PM',
-    'seats': 'A1, A2',
-    'amount': 500,
-    'payment_id': 'pay_test123'
+api_key = getattr(settings, 'SENDGRID_API_KEY', None) or os.environ.get('SENDGRID_API_KEY')
+print(f"API key loaded: {bool(api_key)}")
+
+payload = {
+    "personalizations": [
+        {
+            "to": [{"email": "sayantanpal2006741201@gmail.com"}],
+            "subject": "Test Debugger"
+        }
+    ],
+    "from": {"email": "sayantanpal2006741201@gmail.com", "name": "BookMyShow"},
+    "content": [
+        {
+            "type": "text/html",
+            "value": "<h1>Test from debugger</h1>"
+        }
+    ]
 }
-sayantans_email = "sayantanpal2006741201@gmail.com"
 
-print(f"\nSending demo email to {sayantans_email}...")
-result = send_booking_confirmation_email(sayantans_email, demo_data)
+req = urllib.request.Request('https://api.sendgrid.com/v3/mail/send')
+req.add_header('Authorization', f'Bearer {api_key}')
+req.add_header('Content-Type', 'application/json')
+context = ssl._create_unverified_context()
 
-if result:
-    print("\n✅ PYTHON SCRIPT SAYS SUCCESS! Check your inbox.")
-else:
-    print("\n❌ EMAIL FAILED.")
+try:
+    print("Sending API request to SendGrid...")
+    response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), context=context)
+    print(f"Success! Status: {response.status}")
+except urllib.error.HTTPError as e:
+    print(f"\n❌ SENDGRID REJECTED THE REQUEST: HTTP {e.code}")
+    print("\n--- SENDGRID ERROR REASON ---")
+    error_body = e.read().decode('utf-8')
+    try:
+        # Try to make it pretty JSON if possible
+        print(json.dumps(json.loads(error_body), indent=2))
+    except:
+        print(error_body)
+    print("-----------------------------\n")
+except Exception as e:
+    print(f"Other Error: {e}")
