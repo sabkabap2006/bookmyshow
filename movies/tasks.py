@@ -18,6 +18,7 @@ def send_booking_confirmation_email(user_email, booking_data):
         text_content = render_to_string('emails/booking_confirmation.txt', {'booking': booking_data})
         
         # Render the HTML content
+        context = {'booking': booking_data}
         html_content = render_to_string('emails/booking_confirmation.html', context)
 
         api_key = getattr(settings, 'RESEND_API_KEY', None)
