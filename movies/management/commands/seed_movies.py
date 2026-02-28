@@ -56,10 +56,20 @@ class Command(BaseCommand):
 
             created_movies = Movie.objects.bulk_create(movies_to_create)
 
-            self.stdout.write('Assigning genres and languages...')
+            self.stdout.write('Assigning genres and languages (in bulk)...')
+            MovieGenre = Movie.genres.through
+            MovieLanguage = Movie.languages.through
+            
+            movie_genres = []
+            movie_languages = []
             for movie in created_movies:
-                movie.genres.add(*random.sample(genres, k=random.randint(1, 3)))
-                movie.languages.add(*random.sample(languages, k=random.randint(1, 2)))
+                for genre in random.sample(genres, k=random.randint(1, 3)):
+                    movie_genres.append(MovieGenre(movie_id=movie.id, genre_id=genre.id))
+                for language in random.sample(languages, k=random.randint(1, 2)):
+                    movie_languages.append(MovieLanguage(movie_id=movie.id, language_id=language.id))
+            
+            MovieGenre.objects.bulk_create(movie_genres, batch_size=10000)
+            MovieLanguage.objects.bulk_create(movie_languages, batch_size=10000)
 
             self.stdout.write('Creating theaters and seats...')
             now = timezone.now()
