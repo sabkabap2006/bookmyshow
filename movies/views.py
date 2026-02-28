@@ -220,6 +220,7 @@ def razorpay_webhook(request):
     Handles Idempotency to prevent redundant processing.
     """
     if request.method == "POST":
+        print("WEBHOOK ACCESSED: Received POST request from Razorpay")
         webhook_body = request.body.decode('utf-8')
         webhook_signature = request.headers.get('X-Razorpay-Signature')
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
@@ -249,10 +250,12 @@ def razorpay_webhook(request):
         try:
             payment = Payment.objects.get(razorpay_order_id=razorpay_order_id)
         except Payment.DoesNotExist:
+            print(f"WEBHOOK ERROR: Payment for order {razorpay_order_id} not found in database.")
             return HttpResponse("Payment unknown", status=200)
 
         # 3. IDEMPOTENCY CHECK (Replay Attack Mitigation)
         if payment.status in ['CAPTURED', 'FAILED'] and event_type in ['order.paid', 'payment.failed']:
+            print(f"WEBHOOK IGNORED: Payment {razorpay_order_id} already processed.")
             # We already processed this outcome. Ignore duplicate webhooks!
             return HttpResponse("Already processed", status=200)
 
@@ -297,6 +300,7 @@ def razorpay_webhook(request):
                     'seats': ', '.join(booked_seat_numbers),
                     'payment_id': payment.razorpay_payment_id
                 }
+                print(f"WEBHOOK SUCCESS: Payment {payment.razorpay_payment_id} captured. Starting email thread for {payment.user.email}...")
                 email_thread = threading.Thread(
                     target=send_booking_confirmation_email, 
                     args=(payment.user.email, booking_data)

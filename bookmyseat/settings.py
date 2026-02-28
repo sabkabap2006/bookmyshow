@@ -60,12 +60,11 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok-free.dev',
     'https://*.ngrok.io',
     'https://*.ngrok.app',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
     'https://bookmyshowclone-production-295b.up.railway.app',
-    'https://bookmyshow-production-85c9.up.railway.app/'
-    'https://bookmyshow-2l4o.onrender.com'
-    'https://bookmyshow-1-ce47.onrender.com'
+    'https://bookmyshow-production-85c9.up.railway.app/',
+    'https://bookmyshow-2l4o.onrender.com',
+    'https://bookmyshow-1-ce47.onrender.com',
+    'https://api.razorpay.com'
 ]
 
 # Application definition

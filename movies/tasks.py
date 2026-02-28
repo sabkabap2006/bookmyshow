@@ -30,9 +30,11 @@ def send_booking_confirmation_email(user_email, booking_data):
     
     except SMTPException as exc:
         logger.warning(f"SMTP error sending email to {user_email}: {exc}.")
+        print(f"EMAIL THREAD ERROR (SMTP): {exc}")
         pass
     except Exception as exc:
         logger.error(f"Failed to send email to {user_email}: {exc}")
+        print(f"EMAIL THREAD ERROR (General): {exc}")
         pass
 
 def release_expired_bookings():

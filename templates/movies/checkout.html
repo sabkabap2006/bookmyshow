@@ -31,6 +31,9 @@
         "description": "Ticket Booking for {{ theater.movie.name }}",
         "order_id": "{{ razorpay_order_id }}",
         "handler": function (response) {
+            console.log("RAZORPAY SUCCESS! Received Payment ID:", response.razorpay_payment_id);
+            console.log("Now submitting the hidden form to trigger the backend callback...");
+            
             // Populate the hidden form and submit to our backend callback
             document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
             document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
@@ -55,9 +58,16 @@
 
     // Automatically open Razorpay when page loads, or button is clicked
     document.getElementById('rzp-button1').onclick = function (e) {
+        console.log("Opening Razorpay checkout overlay...");
         rzp1.open();
         e.preventDefault();
     }
+    
+    rzp1.on('payment.failed', function (response){
+        console.error("RAZORPAY CHECKOUT FAILED:", response.error.description);
+        console.error("Error Code:", response.error.code);
+        console.error("Payment ID:", response.error.metadata.payment_id);
+    });
     // Un-comment the line below to auto-launch the popup immediately
     rzp1.open();
 </script>
