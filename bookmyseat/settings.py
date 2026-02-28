@@ -26,7 +26,7 @@ Env.read_env(os.path.join(BASE_DIR, '.env'))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # Default to development locally unless production is specified in Render env
-ENVIRONMENT = env('ENVIRONMENT', default='development')
+ENVIRONMENT = env('ENVIRONMENT', default='production')
 
 SECRET_KEY = env('SECRET_KEY', default='wrrswz0)d0qeh^@5(j4(#zgcm*o-z#vij^8b=#9s3x)t4=li47')
 
@@ -42,7 +42,6 @@ ssl.create_default_context = ssl._create_unverified_context
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure--k%%tj+rfjvq2sr6q)s6(r!aa=skuuiypakd__zvb2p*!35h#&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Debug is now securely controlled dynamically at the top of the file via the ENVIRONMENT variable
@@ -126,7 +125,7 @@ DATABASES = {
 }
 
 # Render PostgreSQL Database Integration via Environment Variable
-database_url = env('DATABASE_URL', default='postgresql://django_bookmyshow_r9ok_user:azT1SRejn4rGTCUIK9nillCMC0hVmXTc@dpg-d6g1vqvgi27c73ckpha0-a.oregon-postgres.render.com/django_bookmyshow_r9ok')
+database_url = env('DATABASE_URL', default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'))
 DATABASES['default'] = dj_database_url.parse(database_url)
 
 # Password validation
