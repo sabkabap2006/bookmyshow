@@ -1,6 +1,6 @@
 import logging
-from smtplib import SMTPException
-from django.core.mail import EmailMultiAlternatives
+import json
+import urllib.request
 from django.template.loader import render_to_string
 from django.conf import settings
 
@@ -13,28 +13,42 @@ def send_booking_confirmation_email(user_email, booking_data):
     """
     try:
         subject = f"Booking Confirmation: {booking_data['movie_name']} at {booking_data['theater_name']}"
-        from_email = settings.EMAIL_HOST_USER
         
         # Render the text content
         text_content = render_to_string('emails/booking_confirmation.txt', {'booking': booking_data})
         
         # Render the HTML content
-        html_content = render_to_string('emails/booking_confirmation.html', {'booking': booking_data})
+        html_content = render_to_string('emails/booking_confirmation.html', context)
 
-        msg = EmailMultiAlternatives(subject, text_content, from_email, [user_email])
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()
+        api_key = getattr(settings, 'RESEND_API_KEY', None)
+        import os
+        if not api_key:
+            api_key = os.environ.get('RESEND_API_KEY')
+            
+        if not api_key:
+            print("EMAIL THREAD ERROR: Missing RESEND_API_KEY environment variable. Cannot send email.")
+            return False
 
-        logger.info(f"Successfully sent confirmation email to {user_email} for booking ID {booking_data.get('payment_id')}")
+        payload = {
+            "from": "BookMyShow <onboarding@resend.dev>",
+            "to": [user_email],
+            "subject": f"Tickets Confirmed! - {booking_data['movie_name']}",
+            "html": html_content
+        }
+
+        req = urllib.request.Request('https://api.resend.com/emails')
+        req.add_header('Authorization', f'Bearer {api_key}')
+        req.add_header('Content-Type', 'application/json')
+        
+        # Send HTTP POST directly (Bypasses Render's SMTP port 587 block)
+        response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'))
+        
+        print(f"RESEND API SUCCESS: Email sent successfully to {user_email}! Status: {response.status}")
         return True
     
-    except SMTPException as exc:
-        logger.warning(f"SMTP error sending email to {user_email}: {exc}.")
-        print(f"EMAIL THREAD ERROR (SMTP): {exc}")
-        pass
     except Exception as exc:
         logger.error(f"Failed to send email to {user_email}: {exc}")
-        print(f"EMAIL THREAD ERROR (General): {exc}")
+        print(f"EMAIL THREAD ERROR (API): {exc}")
         pass
 
 def release_expired_bookings():
