@@ -35,7 +35,6 @@ def send_booking_confirmation_email(user_email, booking_data):
         logger.error(f"Failed to send email to {user_email}: {exc}")
         pass
 
-@shared_task
 def release_expired_bookings():
     """
     Crawls the database for any seats that have been locked in a PENDING state
