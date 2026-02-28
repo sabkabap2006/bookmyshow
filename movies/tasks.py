@@ -54,16 +54,27 @@ def send_booking_confirmation_email(user_email, booking_data):
         import ssl
         context = ssl._create_unverified_context()
 
-        # Send HTTP POST directly 
-        response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), context=context)
-        
-        print(f"SENDGRID API SUCCESS: Email sent successfully to {user_email}! Status: {response.getcode()}")
-        return True
-    
+        try:
+            # Send HTTP POST directly 
+            response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), context=context)
+            print(f"SENDGRID API SUCCESS: Email sent successfully to {user_email}! Status: {response.getcode()}")
+            return True
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode('utf-8')
+            print(f"EMAIL THREAD ERROR (SendGrid HTTP): Status {e.code} | Body: {error_body}")
+            logger.error(f"SendGrid HTTP Error: {error_body}")
+            return False
+        except urllib.error.URLError as e:
+            print(f"EMAIL THREAD ERROR (URLError): {e.reason}")
+            logger.error(f"URLError: {e.reason}")
+            return False
+            
     except Exception as exc:
         logger.error(f"Failed to send email to {user_email}: {exc}")
-        print(f"EMAIL THREAD ERROR (API): {exc}")
-        pass
+        import traceback
+        traceback.print_exc()
+        print(f"EMAIL THREAD ERROR (API Catch-all): {exc}")
+        return False
 
 def release_expired_bookings():
     """
