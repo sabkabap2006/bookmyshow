@@ -1,9 +1,14 @@
 #!/bin/bash
-set -o errexit
+set -e
 
-echo "Starting Django application..."
-
-python manage.py collectstatic --noinput
+echo "Running migrations..."
 python manage.py migrate --noinput
 
-exec gunicorn bookmyseat.wsgi:application --bind 0.0.0.0:$PORT
+echo "Collecting static files..."
+python manage.py collectstatic --noinput
+
+echo "Starting Gunicorn..."
+exec gunicorn bookmyseat.wsgi:application \
+  --bind 0.0.0.0:$PORT \
+  --workers 3 \
+  --timeout 120
