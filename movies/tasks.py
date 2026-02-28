@@ -21,10 +21,23 @@ def send_booking_confirmation_email(user_email, booking_data):
         context = {'booking': booking_data}
         html_content = render_to_string('emails/booking_confirmation.html', context)
 
-        api_key = getattr(settings, 'SENDGRID_API_KEY', None)
         import os
-        if not api_key:
-            api_key = os.environ.get('SENDGRID_API_KEY')
+        api_key = getattr(settings, 'SENDGRID_API_KEY', None)
+        
+        print("--- VERCEL ENVIRONMENT DEBUGGER ---")
+        print(f"settings.SENDGRID_API_KEY = {'Found' if getattr(settings, 'SENDGRID_API_KEY', None) else 'Missing'}")
+        
+        # Check all os.environ keys for typos (like spaces)
+        sg_keys = [k for k in os.environ.keys() if 'SENDGRID' in k.upper()]
+        print(f"OS Env Keys containing 'SENDGRID': {sg_keys}")
+        
+        if sg_keys:
+            # If they named it SENDGRID_API_KEY with a space at the end, this will grab it
+            api_key = api_key or os.environ.get(sg_keys[0])
+        else:
+            api_key = api_key or os.environ.get('SENDGRID_API_KEY')
+            
+        print("-----------------------------------")
             
         if not api_key:
             print("EMAIL THREAD ERROR: Missing SENDGRID_API_KEY environment variable. Cannot send email.")
