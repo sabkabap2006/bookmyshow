@@ -115,7 +115,16 @@ def book_seats(request, theater_id):
             import traceback
             print(f"RAZORPAY ERROR: {str(e)}")
             traceback.print_exc()
-            return render(request, "movies/seat_selection.html", {'theater': theaters, "seats": seats, 'error': f"Payment gateway error: {str(e)}"})
+            
+            # Mask the key for security, but show enough to debug if Vercel loaded it
+            key_id = getattr(settings, 'RAZORPAY_KEY_ID', 'None')
+            masked_key = key_id[:12] + '...' if key_id else 'None'
+            
+            return render(request, "movies/seat_selection.html", {
+                'theater': theaters, 
+                "seats": seats, 
+                'error': f"Authentication failed! Vercel is using key: '{masked_key}'. Ensure your Vercel Environment Variables are set AND you Redeployed!"
+            })
         
         pending_bookings = []
         
