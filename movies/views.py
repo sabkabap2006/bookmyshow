@@ -11,6 +11,7 @@ import json
 import razorpay
 from .models import Movie, Theater, Seat, Booking, Payment, Genre, Language
 from .tasks import send_booking_confirmation_email
+import threading
 
 def movie_list(request):
     search_query = request.GET.get('search', '')
@@ -296,7 +297,11 @@ def razorpay_webhook(request):
                     'seats': ', '.join(booked_seat_numbers),
                     'payment_id': payment.razorpay_payment_id
                 }
-                send_booking_confirmation_email.delay(payment.user.email, booking_data)
+                email_thread = threading.Thread(
+                    target=send_booking_confirmation_email, 
+                    args=(payment.user.email, booking_data)
+                )
+                email_thread.start()
 
         elif event_type == 'payment.failed':
             # Handle Timeout/Failure

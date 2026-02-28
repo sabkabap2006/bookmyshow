@@ -1,0 +1,11 @@
+app = "bookmyseat-worker"
+
+[build]
+  builder = "paketobuildpacks/builder:base"
+
+[env]
+  ENVIRONMENT = "production"
+
+[processes]
+  worker = "python3 -m celery -A bookmyseat worker -l info"
+  beat = "python3 -m celery -A bookmyseat beat -l info" 

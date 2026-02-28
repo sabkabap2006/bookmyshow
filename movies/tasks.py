@@ -3,12 +3,10 @@ from smtplib import SMTPException
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def send_booking_confirmation_email(self, user_email, booking_data):
+def send_booking_confirmation_email(user_email, booking_data):
     """
     Sends a booking confirmation email securely in the background.
     Retries up to 3 times on SMTP related errors.
@@ -31,11 +29,11 @@ def send_booking_confirmation_email(self, user_email, booking_data):
         return True
     
     except SMTPException as exc:
-        logger.warning(f"SMTP error sending email to {user_email}: {exc}. Retrying...")
-        raise self.retry(exc=exc)
+        logger.warning(f"SMTP error sending email to {user_email}: {exc}.")
+        pass
     except Exception as exc:
         logger.error(f"Failed to send email to {user_email}: {exc}")
-        raise
+        pass
 
 @shared_task
 def release_expired_bookings():
