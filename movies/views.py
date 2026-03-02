@@ -115,16 +115,7 @@ def book_seats(request, theater_id):
             import traceback
             print(f"RAZORPAY ERROR: {str(e)}")
             traceback.print_exc()
-            
-            # Mask the key for security, but show enough to debug if Vercel loaded it
-            key_id = getattr(settings, 'RAZORPAY_KEY_ID', 'None')
-            masked_key = key_id[:12] + '...' if key_id else 'None'
-            
-            return render(request, "movies/seat_selection.html", {
-                'theater': theaters, 
-                "seats": seats, 
-                'error': f"Authentication failed! Vercel is using key: '{masked_key}'. Ensure your Vercel Environment Variables are set AND you Redeployed!"
-            })
+            return render(request, "movies/seat_selection.html", {'theater': theaters, "seats": seats, 'error': f"Payment gateway error: {str(e)}"})
         
         pending_bookings = []
         
@@ -229,7 +220,6 @@ def razorpay_webhook(request):
     Handles Idempotency to prevent redundant processing.
     """
     if request.method == "POST":
-        print("WEBHOOK ACCESSED: Received POST request from Razorpay")
         webhook_body = request.body.decode('utf-8')
         webhook_signature = request.headers.get('X-Razorpay-Signature')
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
@@ -259,12 +249,10 @@ def razorpay_webhook(request):
         try:
             payment = Payment.objects.get(razorpay_order_id=razorpay_order_id)
         except Payment.DoesNotExist:
-            print(f"WEBHOOK ERROR: Payment for order {razorpay_order_id} not found in database.")
             return HttpResponse("Payment unknown", status=200)
 
         # 3. IDEMPOTENCY CHECK (Replay Attack Mitigation)
         if payment.status in ['CAPTURED', 'FAILED'] and event_type in ['order.paid', 'payment.failed']:
-            print(f"WEBHOOK IGNORED: Payment {razorpay_order_id} already processed.")
             # We already processed this outcome. Ignore duplicate webhooks!
             return HttpResponse("Already processed", status=200)
 
@@ -309,7 +297,6 @@ def razorpay_webhook(request):
                     'seats': ', '.join(booked_seat_numbers),
                     'payment_id': payment.razorpay_payment_id
                 }
-                print(f"WEBHOOK SUCCESS: Payment {payment.razorpay_payment_id} captured. Starting email thread for {payment.user.email}...")
                 email_thread = threading.Thread(
                     target=send_booking_confirmation_email, 
                     args=(payment.user.email, booking_data)
@@ -362,97 +349,67 @@ def razorpay_cancel(request, order_id):
         return redirect('theater_list', movie_id)
     return redirect('movie_list')
 
- 
-from django.shortcuts import render
+from django.db.models import Sum, Count, Q, F, ExpressionWrapper, FloatField
+from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, ExtractHour, Cast
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.cache import cache
-from django.db.models import Count, Sum, Q
-from movies.models import Movie, Theater, Booking, Payment
-from datetime import timedelta, datetime
 
 @staff_member_required(login_url='/login/')
 def admin_dashboard(request):
     """
-    Optimized admin analytics dashboard with Redis caching.
-    Stats are cached for 5 minutes to avoid heavy DB queries on each request.
+    Highly Optimized Admin Dashboard heavily utilizing Django's underlying Database aggregate functions
+    to prevent memory overflow, caching the results into Redis for 5 minutes.
     """
-
-    # Try fetching cached stats first
-    stats = cache.get('admin_dashboard_stats')
-    if stats:
-        return render(request, 'movies/admin_dashboard.html', {'stats': stats})
-
-    # -------------------
-    # Heavy computation only if cache miss
-    # -------------------
-
-    # 1️⃣ Total revenue
-    total_revenue = Payment.objects.filter(status='CAPTURED').aggregate(
-        total=Sum('amount')
-    )['total'] or 0
-
-    # 2️⃣ Total bookings and cancellation rate
-    total_bookings_count = Booking.objects.count()
-    cancelled_count = Booking.objects.filter(status='CANCELLED').count()
-    cancellation_rate = round((cancelled_count / total_bookings_count) * 100, 2) if total_bookings_count else 0
-
-    # 3️⃣ Most popular movies (top 5)
-    popular_movies = (
-        Movie.objects.annotate(
-            booking_count=Count('bookings', filter=Q(bookings__status__in=['PENDING', 'CONFIRMED']))
-        )
-        .values('id', 'name', 'booking_count')
-        .order_by('-booking_count')[:5]
-    )
-
-    # 4️⃣ Busiest theaters (occupancy rate)
-    theaters = Theater.objects.all().prefetch_related('seats', 'bookings')
-    busiest_theaters = []
-    for theater in theaters:
-        total_seats = theater.seats.count()
-        booked_seats = theater.seats.filter(is_booked=True).count()
-        occupancy = (booked_seats / total_seats * 100) if total_seats else 0
-        busiest_theaters.append({
-            'id': theater.id,
-            'name': theater.name,
-            'occupancy': round(occupancy, 1)
-        })
-    # Sort by occupancy descending and pick top 5
-    busiest_theaters = sorted(busiest_theaters, key=lambda x: x['occupancy'], reverse=True)[:5]
-
-    # 5️⃣ Daily revenue (last 7 days)
-    today = datetime.utcnow().date()
-    week_ago = today - timedelta(days=7)
-    daily_revenue = (
-        Payment.objects.filter(status='CAPTURED', created_at__date__gte=week_ago)
-        .extra({'day': "date(created_at)"})
-        .values('day')
-        .annotate(total=Sum('amount'))
-        .order_by('day')
-    )
-
-    # 6️⃣ Peak booking hours (last 7 days)
-    peak_hours_qs = (
-        Booking.objects.filter(booked_at__date__gte=week_ago)
-        .extra({'hour': "EXTRACT(hour FROM booked_at)"})
-        .values('hour')
-        .annotate(volume=Count('id'))
-        .order_by('-volume')
-    )
-    peak_hours = [{'hour': int(item['hour']), 'volume': item['volume']} for item in peak_hours_qs]
-
-    # Compose stats dict
-    stats = {
-        'total_revenue_number': total_revenue,
-        'total_bookings': total_bookings_count,
-        'cancellation_rate': cancellation_rate,
-        'popular_movies': list(popular_movies),
-        'busiest_theaters': busiest_theaters,
-        'daily_revenue': list(daily_revenue),
-        'peak_hours': peak_hours
-    }
-
-    # Cache for 5 minutes
-    cache.set('admin_dashboard_stats', stats, timeout=300)
+    # 1. Check Redis Cache First
+    cache_key = "admin_dashboard_stats"
+    stats = cache.get(cache_key)
+    
+    if not stats:
+        # 1. Total Revenue (Daily, Weekly, Monthly) - We'll simply calculate totals of captured payments grouped by trunc date
+        daily_revenue = Payment.objects.filter(status='CAPTURED').annotate(date=TruncDate('created_at')).values('date').annotate(total=Sum('amount')).order_by('date')
+        monthly_revenue = Payment.objects.filter(status='CAPTURED').annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount')).order_by('month')
+        total_revenue_number = Payment.objects.filter(status='CAPTURED').aggregate(sum=Sum('amount'))['sum'] or 0
+        
+        # 2. Most Popular Movies (Booked count)
+        popular_movies = Movie.objects.annotate(
+            booking_count=Count('booking', filter=Q(booking__status__in=['PENDING', 'CONFIRMED']))
+        ).order_by('-booking_count')[:5]
+        
+        # 3. Busiest Theaters (Occupancy Rate = Booked / Total Seats)
+        busiest_theaters = Theater.objects.annotate(
+            total_seats=Count('seats', distinct=True),
+            booked_count=Count('booking', filter=Q(booking__status__in=['PENDING', 'CONFIRMED']), distinct=True)
+        ).annotate(
+            occupancy=ExpressionWrapper(
+                Cast('booked_count', FloatField()) / Cast('total_seats', FloatField()) * 100,
+                output_field=FloatField()
+            )
+        ).order_by('-occupancy')[:5]
+        
+        # 4. Peak Booking Hours
+        peak_hours = Booking.objects.annotate(
+            hour=ExtractHour('booked_at')
+        ).values('hour').annotate(
+            volume=Count('id')
+        ).order_by('-volume')[:5]
+        
+        # 5. Cancellation Rates
+        total_bookings = Booking.objects.count()
+        cancelled_bookings = Booking.objects.filter(status='CANCELLED').count()
+        cancellation_rate = (cancelled_bookings / total_bookings * 100) if total_bookings > 0 else 0
+        
+        stats = {
+            'daily_revenue': list(daily_revenue),
+            'monthly_revenue': list(monthly_revenue),
+            'total_revenue_number': total_revenue_number,
+            'popular_movies': popular_movies,
+            'busiest_theaters': busiest_theaters,
+            'peak_hours': list(peak_hours),
+            'cancellation_rate': round(cancellation_rate, 2),
+            'total_bookings': total_bookings
+        }
+        
+        # Cache this DB-heavy calculation block in Redis for 300 seconds (5 minutes)
+        cache.set(cache_key, stats, timeout=300)
 
     return render(request, 'movies/admin_dashboard.html', {'stats': stats})
