@@ -362,58 +362,90 @@ def razorpay_cancel(request, order_id):
         return redirect('theater_list', movie_id)
     return redirect('movie_list')
 
-from django.db.models import Sum, Count, Q, F, ExpressionWrapper, FloatField
-from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, ExtractHour, Cast
+ 
+from django.db.models import Sum, Count, Q, ExpressionWrapper, FloatField
+from django.db.models.functions import TruncDate, TruncMonth, ExtractHour, Cast
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.cache import cache
 
+
 @staff_member_required(login_url='/login/')
 def admin_dashboard(request):
-    """
-    Highly Optimized Admin Dashboard heavily utilizing Django's underlying Database aggregate functions
-    to prevent memory overflow, caching the results into Redis for 5 minutes.
-    """
-    # 1. Check Redis Cache First
+
     cache_key = "admin_dashboard_stats"
     stats = cache.get(cache_key)
-    
+
     if not stats:
-        # 1. Total Revenue (Daily, Weekly, Monthly) - We'll simply calculate totals of captured payments grouped by trunc date
-        daily_revenue = Payment.objects.filter(status='CAPTURED').annotate(date=TruncDate('created_at')).values('date').annotate(total=Sum('amount')).order_by('date')
-        monthly_revenue = Payment.objects.filter(status='CAPTURED').annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount')).order_by('month')
-        total_revenue_number = Payment.objects.filter(status='CAPTURED').aggregate(sum=Sum('amount'))['sum'] or 0
-        
-        # 2. Most Popular Movies (Booked count)
-        popular_movies = Movie.objects.annotate(
-            booking_count=Count('booking', filter=Q(booking__status__in=['PENDING', 'CONFIRMED']))
-        ).order_by('-booking_count')[:5]
-        
-        # 3. Busiest Theaters (Occupancy Rate = Booked / Total Seats)
-        busiest_theaters = Theater.objects.annotate(
-            total_seats=Count('seats', distinct=True),
-            booked_count=Count('booking', filter=Q(booking__status__in=['PENDING', 'CONFIRMED']), distinct=True)
-        ).annotate(
-            occupancy=ExpressionWrapper(
-                Cast('booked_count', FloatField()) / Cast('total_seats', FloatField()) * 100,
-                output_field=FloatField()
+
+        # ✅ Total Revenue
+        daily_revenue = (
+            Payment.objects
+            .filter(status='CAPTURED')
+            .annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(total=Sum('amount'))
+            .order_by('date')
+        )
+
+        total_revenue_number = (
+            Payment.objects
+            .filter(status='CAPTURED')
+            .aggregate(sum=Sum('amount'))['sum'] or 0
+        )
+
+        # ✅ Most Popular Movies (FIXED)
+        popular_movies = (
+            Movie.objects
+            .annotate(
+                booking_count=Count(
+                    'bookings',
+                    filter=Q(bookings__status__in=['PENDING', 'CONFIRMED'])
+                )
             )
-        ).order_by('-occupancy')[:5]
-        
-        # 4. Peak Booking Hours
-        peak_hours = Booking.objects.annotate(
-            hour=ExtractHour('booked_at')
-        ).values('hour').annotate(
-            volume=Count('id')
-        ).order_by('-volume')[:5]
-        
-        # 5. Cancellation Rates
+            .order_by('-booking_count')[:5]
+        )
+
+        # ✅ Busiest Theaters (FIXED)
+        busiest_theaters = (
+            Theater.objects
+            .annotate(
+                total_seats=Count('seats', distinct=True),
+                booked_count=Count(
+                    'bookings',
+                    filter=Q(bookings__status__in=['PENDING', 'CONFIRMED']),
+                    distinct=True
+                )
+            )
+            .annotate(
+                occupancy=ExpressionWrapper(
+                    Cast('booked_count', FloatField()) /
+                    Cast('total_seats', FloatField()) * 100,
+                    output_field=FloatField()
+                )
+            )
+            .order_by('-occupancy')[:5]
+        )
+
+        # ✅ Peak Booking Hours
+        peak_hours = (
+            Booking.objects
+            .annotate(hour=ExtractHour('booked_at'))
+            .values('hour')
+            .annotate(volume=Count('id'))
+            .order_by('-volume')[:5]
+        )
+
+        # ✅ Cancellation Rate
         total_bookings = Booking.objects.count()
         cancelled_bookings = Booking.objects.filter(status='CANCELLED').count()
-        cancellation_rate = (cancelled_bookings / total_bookings * 100) if total_bookings > 0 else 0
-        
+
+        cancellation_rate = (
+            (cancelled_bookings / total_bookings * 100)
+            if total_bookings > 0 else 0
+        )
+
         stats = {
             'daily_revenue': list(daily_revenue),
-            'monthly_revenue': list(monthly_revenue),
             'total_revenue_number': total_revenue_number,
             'popular_movies': popular_movies,
             'busiest_theaters': busiest_theaters,
@@ -421,8 +453,7 @@ def admin_dashboard(request):
             'cancellation_rate': round(cancellation_rate, 2),
             'total_bookings': total_bookings
         }
-        
-        # Cache this DB-heavy calculation block in Redis for 300 seconds (5 minutes)
+
         cache.set(cache_key, stats, timeout=300)
 
     return render(request, 'movies/admin_dashboard.html', {'stats': stats})
