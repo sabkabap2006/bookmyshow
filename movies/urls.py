@@ -7,5 +7,5 @@ urlpatterns=[
     path('payment/callback/', views.razorpay_callback, name='razorpay_callback'),
     re_path(r'^payment/webhook/?$', views.razorpay_webhook, name='razorpay_webhook'),
     path('payment/cancel/<str:order_id>/', views.razorpay_cancel, name='razorpay_cancel'),
-    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/', views.admin_dashboard_api, name='admin_dashboard'),
 ]
